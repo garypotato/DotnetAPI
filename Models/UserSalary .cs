@@ -4,6 +4,5 @@ namespace DotnetAPI.Models
     {
         public int UserId { get; set; }
         public string Salary { get; set; } = "";
-        public string AvgSalary { get; set; } = "";
     }
 }
