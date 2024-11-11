@@ -10,22 +10,24 @@ namespace DotnetAPI.Controllers
     [Route("[controller]")]
     public class UserEFController : ControllerBase
     {
-        DataContextEF _EF;
+        IUserRepository _userRepository;
         IMapper _mapper;
 
-        public UserEFController(IConfiguration config)
+        public UserEFController(IConfiguration config, IUserRepository userRepository
+        )
         {
-            _EF = new DataContextEF(config);
+            _userRepository = userRepository;
             _mapper = new Mapper(new MapperConfiguration(cfg =>
             {
                 cfg.CreateMap<UserToAddDto, User>();
             }));
         }
 
+        // ----- user controllers -----
         [HttpGet("users")]
         public IEnumerable<User> GetUsers()
         {
-            IEnumerable<User> users = _EF.Users.ToList<User>();
+            IEnumerable<User> users = _userRepository.GetUsers();
 
             return users;
         }
@@ -33,19 +35,13 @@ namespace DotnetAPI.Controllers
         [HttpGet("users/{userId}")]
         public User GetSingleUser(string userId)
         {
-            User? user = _EF.Users.Where(u => u.UserId == Convert.ToInt32(userId)).FirstOrDefault();
-            if (user != null)
-            {
-                return user;
-            }
-
-            throw new Exception("User not found");
+            return _userRepository.GetSingleUser(userId);
         }
 
         [HttpPut("updateUser")]
         public IActionResult UpdateUser(User user)
         {
-            User? userDB = _EF.Users.Where(u => u.UserId == Convert.ToInt32(user.UserId)).FirstOrDefault();
+            User? userDB = _userRepository.GetSingleUser(user.UserId.ToString());
 
             if (userDB != null)
             {
@@ -55,7 +51,7 @@ namespace DotnetAPI.Controllers
                 userDB.Gender = user.Gender;
                 userDB.Active = user.Active;
 
-                if (_EF.SaveChanges() > 0)
+                if (_userRepository.SaveChanges())
                 {
                     return Ok("User updated successfully");
                 }
@@ -69,17 +65,10 @@ namespace DotnetAPI.Controllers
         [HttpPost("createUser")]
         public IActionResult CreateUser(UserToAddDto user)
         {
-            User? userDB = _EF.Users.Where(u => u.Email == user.Email).FirstOrDefault<User>();
-
-            if (userDB != null)
-            {
-                return BadRequest("User already exists");
-            }
-
             User newUser = _mapper.Map<User>(user);
 
-            _EF.Users.Add(newUser);
-            if (_EF.SaveChanges() > 0)
+            _userRepository.AddEntity(newUser);
+            if (_userRepository.SaveChanges())
             {
                 return Ok("User created successfully");
             }
@@ -90,12 +79,12 @@ namespace DotnetAPI.Controllers
         [HttpDelete("deleteUser/{userId}")]
         public IActionResult DeleteUser(string userId)
         {
-            User? userDB = _EF.Users.Where(u => u.UserId == Convert.ToInt32(userId)).FirstOrDefault<User>();
+            User? userDB = _userRepository.GetSingleUser(userId);
 
             if (userDB != null)
             {
-                _EF.Users.Remove(userDB);
-                if (_EF.SaveChanges() > 0)
+                _userRepository.RemoveEntity(userDB);
+                if (_userRepository.SaveChanges())
                 {
                     return Ok("User deleted successfully");
                 }
@@ -104,6 +93,142 @@ namespace DotnetAPI.Controllers
             }
 
             throw new Exception("User not found");
+        }
+
+        // ----- user salary controllers -----
+        [HttpGet("userSalary")]
+        public IEnumerable<UserSalary> GetUserSalaries()
+        {
+            return _userRepository.GetUserSalaries();
+        }
+
+        [HttpGet("userSalary/{userId}")]
+        public UserSalary GetSingleUserSalary(string userId)
+        {
+            return _userRepository.GetSingleUserSalary(userId);
+        }
+
+        [HttpPut("updateUserSalary")]
+        public IActionResult UpdateUserSalary(UserSalary userSalary)
+        {
+            UserSalary? userSalaryDB = _userRepository.GetSingleUserSalary(userSalary.UserId.ToString());
+
+            if (userSalaryDB != null)
+            {
+                userSalaryDB.Salary = userSalary.Salary;
+
+                if (_userRepository.SaveChanges())
+                {
+                    return Ok("User salary updated successfully");
+                }
+
+                throw new Exception("User salary not found");
+            }
+
+            throw new Exception("User salary not found");
+        }
+
+        [HttpPost("createUserSalary")]
+        public IActionResult CreateUserSalary(UserSalary userSalary)
+        {
+            _userRepository.AddEntity<UserSalary>(userSalary);
+            if (_userRepository.SaveChanges())
+            {
+                return Ok("User salary created successfully");
+            }
+
+            return BadRequest("User salary creation failed");
+        }
+
+        [HttpDelete("deleteUserSalary/{userId}")]
+        public IActionResult DeleteUserSalary(string userId)
+        {
+            UserSalary? userSalaryDB = _userRepository.GetSingleUserSalary(userId);
+
+            if (userSalaryDB != null)
+            {
+                _userRepository.RemoveEntity(userSalaryDB);
+                if (_userRepository.SaveChanges())
+                {
+                    return Ok("User salary deleted successfully");
+                }
+
+                throw new Exception("User salary not found");
+            }
+
+            throw new Exception("User salary not found");
+        }
+
+        // ----- user job info controllers -----
+        [HttpGet("userJobInfo")]
+        public IEnumerable<UserJobInfo> GetUserJobInfos()
+        {
+            return _userRepository.GetUserJobInfos();
+        }
+
+        [HttpGet("userJobInfo/{userId}")]
+        public UserJobInfo GetSingleUserJobInfo(string userId)
+        {
+            return _userRepository.GetSingleUserJobInfo(userId);
+        }
+
+        [HttpPut("updateUserJobInfo")]
+        public IActionResult UpdateUserJobInfo(UserJobInfo userJobInfo)
+        {
+            UserJobInfo? userJobInfoDB = _userRepository.GetSingleUserJobInfo(userJobInfo.UserId.ToString());
+
+            if (userJobInfoDB != null)
+            {
+                userJobInfoDB.JobTitle = userJobInfo.JobTitle;
+                userJobInfoDB.Department = userJobInfo.Department;
+
+                if (_userRepository.SaveChanges())
+                {
+                    return Ok("User job info updated successfully");
+                }
+
+                throw new Exception("User job info not found");
+            }
+
+            throw new Exception("User job info not found");
+        }
+
+        [HttpPost("createUserJobInfo")]
+        public IActionResult CreateUserJobInfo(UserJobInfo userJobInfo)
+        {
+            UserJobInfo? userJobInfoDB = _userRepository.GetSingleUserJobInfo(userJobInfo.UserId.ToString());
+
+            if (userJobInfoDB != null)
+            {
+                return BadRequest("User job info already exists");
+            }
+
+            _userRepository.AddEntity<UserJobInfo>(userJobInfo);
+            if (_userRepository.SaveChanges())
+            {
+                return Ok("User job info created successfully");
+            }
+
+            return BadRequest("User job info creation failed");
+        }
+
+        [HttpDelete("deleteUserJobInfo/{userId}")]
+        public IActionResult DeleteUserJobInfo(string userId)
+        {
+            UserJobInfo? userJobInfoDB = _userRepository.GetSingleUserJobInfo(userId);
+
+            if (userJobInfoDB != null)
+            {
+                _userRepository.RemoveEntity(userJobInfoDB);
+                if (_userRepository.SaveChanges())
+                {
+                    return Ok("User job info deleted successfully");
+                }
+
+                throw new Exception("User job info not found");
+            }
+
+            throw new Exception("User job info not found");
         }
     }
 }
