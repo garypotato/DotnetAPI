@@ -62,7 +62,7 @@ namespace DotnetAPI.Controllers
         {
             string sql = "insert into TutorialAppSchema.Users (FirstName , LastName, Email, Gender, Active) values ('"
             + user.FirstName + "', '" + user.LastName + "', '" + user.Email + "', '" + user.Gender + "', '" + user.Active + "')";
-            Console.WriteLine(sql);
+
             if (_dapper.ExecuteData(sql))
             {
                 return Ok("User created successfully");
